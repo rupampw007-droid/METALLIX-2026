@@ -9,6 +9,7 @@ const faqItems = [
     id: 'item-1',
     question: 'When is the Last day to register for Metallix 2026?',
     answer: 'The last date to register for Metallix 2026 is 31st March, 2026.',
+
   },
   {
     id: 'item-2',
@@ -18,7 +19,7 @@ const faqItems = [
   {
     id: 'item-3',
     question: 'On which day will the events be conducted?',
-    answer: 'The events are distributed across both days — 3rd April, 2026.',
+    answer: 'The events are distributed across both days — 2nd and 3rd April, 2026.',
   },
   {
     id: 'item-6',

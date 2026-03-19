@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import ReactDOM from 'react-dom'
 import {
   motion,
@@ -66,13 +66,12 @@ function CursorCard({ active, cursorX, cursorY }: {
   cursorX: ReturnType<typeof useSpring>
   cursorY: ReturnType<typeof useSpring>
 }) {
-  // ✅ portalTarget starts null on both server AND client first render (no mismatch).
-  // useEffect fires only after hydration is complete, setting it to document.body.
-  // The linter is satisfied because we're syncing React state with an external
-  // system (the DOM node), which is the correct use case for useEffect + setState.
-  const [portalTarget, setPortalTarget] = useState<Element | null>(null)
-  useEffect(() => { setPortalTarget(document.body) }, [])
-  if (!portalTarget) return null
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
+  if (!mounted) return null
 
   return ReactDOM.createPortal(
     <div style={{ position: 'fixed', left: 0, top: 0, zIndex: 999999, pointerEvents: 'none' }}>
@@ -141,7 +140,7 @@ function CursorCard({ active, cursorX, cursorY }: {
         </AnimatePresence>
       </motion.div>
     </div>,
-    portalTarget  // ✅ was document.body — now a state value, null on SSR
+    document.body
   )
 }
 
@@ -268,8 +267,6 @@ export default function ContactUsSection() {
     }
   }, [isMobile, mouseX, mouseY])
 
-  // ✅ Stable per-row callbacks — prevents all 6 rows re-rendering when
-  // only one row's active state changes (pairs with React.memo on ContactRow)
   const handlers = React.useMemo(() =>
     Object.fromEntries(CONTACTS.map(c => [
       c.id,
