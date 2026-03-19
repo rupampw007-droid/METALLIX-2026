@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Mail, MapPin, Phone, Instagram, Facebook, Linkedin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,10 +29,12 @@ function useEmbers(count = 18) {
   return embers;
 }
 
-/* ── TextHoverEffect
-   ✅ KEY FIX: mask position now stored in a useMotionValue + useRef
-      instead of useState → eliminates setState on every mousemove
-      which was causing full React re-renders and freezing in production
+/*
+  ✅ FIX: TextHoverEffect
+  - Removed useState for hovered → replaced with CSS :hover on the SVG
+  - Gradient fill on hover handled via CSS filter trick on a <text> with CSS class
+  - mousemove still uses direct DOM mutation (already correct)
+  - No JS state changes on hover/unhover = zero React re-renders during interaction
 */
 export const TextHoverEffect = ({
   text,
@@ -44,26 +46,16 @@ export const TextHoverEffect = ({
   className?: string;
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [hovered, setHovered] = useState(false);
   const embers = useEmbers(22);
-
-  // ✅ Use motion values directly — no setState on mousemove
-  const cx = useRef("50%");
-  const cy = useRef("50%");
-  const [, forceUpdate] = useState(0);
   const gradientRef = useRef<SVGRadialGradientElement>(null);
+  const strokeTextRef = useRef<SVGTextElement>(null);
 
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) return
-    const rect = svgRef.current.getBoundingClientRect()
-    const newCx = `${((e.clientX - rect.left) / rect.width) * 100}%`
-    const newCy = `${((e.clientY - rect.top) / rect.height) * 100}%`
-    // ✅ Directly mutate the SVG gradient attribute — zero React overhead
-    if (gradientRef.current) {
-      gradientRef.current.setAttribute('cx', newCx)
-      gradientRef.current.setAttribute('cy', newCy)
-    }
-  }
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current || !gradientRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    gradientRef.current.setAttribute('cx', `${((e.clientX - rect.left) / rect.width) * 100}%`);
+    gradientRef.current.setAttribute('cy', `${((e.clientY - rect.top) / rect.height) * 100}%`);
+  }, []);
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -92,36 +84,42 @@ export const TextHoverEffect = ({
         <div style={{ position: "absolute", left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent 0%, rgba(220,30,10,0.0) 20%, rgba(220,30,10,0.55) 50%, rgba(220,30,10,0.0) 80%, transparent 100%)", filter: "blur(1px)", animation: "ftScanLine 4s linear infinite", bottom: "38%" }} />
       </div>
 
+      {/*
+        ✅ KEY FIX: All hover behavior handled by CSS classes, zero useState.
+        - .ft-svg-hover-shadow becomes visible on svg:hover via CSS
+        - .ft-svg-hover-fill stroke becomes visible on svg:hover via CSS
+        The SVG radialGradient is still mutated directly on mousemove (already correct).
+      */}
       <style>{`
         @keyframes ftGlowPulse { 0%, 100% { opacity: 0.6; transform: scaleX(1) scaleY(1); } 50% { opacity: 1.0; transform: scaleX(1.12) scaleY(1.2); } }
         @keyframes ftEmberRise { 0% { opacity: 0; transform: translateY(0px) translateX(0px) scale(1); } 15% { opacity: 1; } 80% { opacity: 0.6; } 100% { opacity: 0; transform: translateY(-120px) translateX(var(--drift)) scale(0.3); } }
         @keyframes ftScanLine { 0% { bottom: 10%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 0.7; } 100% { bottom: 90%; opacity: 0; } }
         @keyframes ftFlicker { 0%, 100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: 0.4; } 94% { opacity: 1; } 97% { opacity: 0.7; } 98% { opacity: 1; } }
+
+        /* ✅ CSS hover — zero JS re-renders */
+        .ft-hover-svg .ft-svg-hover-shadow { opacity: 0; transition: opacity 0.3s; }
+        .ft-hover-svg:hover .ft-svg-hover-shadow { opacity: 0.7; }
+        .ft-hover-svg .ft-svg-hover-fill { stroke: url(#ftTextGrad); opacity: 0; transition: opacity 0.3s; }
+        .ft-hover-svg:hover .ft-svg-hover-fill { opacity: 1; }
       `}</style>
 
       <svg
         ref={svgRef}
         width="100%" height="100%" viewBox="0 0 300 100"
         xmlns="http://www.w3.org/2000/svg"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         onMouseMove={handleMouseMove}
-        className={cn("select-none uppercase cursor-pointer", className)}
+        className={cn("ft-hover-svg select-none uppercase cursor-pointer", className)}
         style={{ position: "relative", zIndex: 54, animation: "ftFlicker 6s ease-in-out infinite" }}
       >
         <defs>
+          {/* ✅ Gradient always present — CSS controls visibility of elements using it */}
           <linearGradient id="ftTextGrad" gradientUnits="userSpaceOnUse">
-            {hovered && (
-              <>
-                <stop offset="0%" stopColor="#ff2010" />
-                <stop offset="35%" stopColor="#cc1000" />
-                <stop offset="65%" stopColor="#9010cc" />
-                <stop offset="100%" stopColor="#6000aa" />
-              </>
-            )}
+            <stop offset="0%" stopColor="#ff2010" />
+            <stop offset="35%" stopColor="#cc1000" />
+            <stop offset="65%" stopColor="#9010cc" />
+            <stop offset="100%" stopColor="#6000aa" />
           </linearGradient>
 
-          {/* ✅ Plain SVG radialGradient — mutated directly via ref, zero React overhead */}
           <radialGradient
             ref={gradientRef}
             id="ftRevealMask"
@@ -143,12 +141,13 @@ export const TextHoverEffect = ({
           </filter>
         </defs>
 
-        {/* Shadow layer */}
+        {/* Shadow layer — shown on CSS :hover */}
         <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" strokeWidth="0.3"
-          style={{ fill: "transparent", stroke: "rgba(255,40,10,0.18)", fontFamily: "'Orbitron', monospace", fontSize: "4rem", fontWeight: 900, opacity: hovered ? 0.7 : 0, transition: "opacity 0.3s" }}
+          className="ft-svg-hover-shadow"
+          style={{ fill: "transparent", stroke: "rgba(255,40,10,0.18)", fontFamily: "'Orbitron', monospace", fontSize: "4rem", fontWeight: 900 }}
         >{text}</text>
 
-        {/* Draw-on stroke */}
+        {/* Draw-on stroke (always visible, animates in) */}
         <motion.text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" strokeWidth="0.3" filter="url(#ftGlow)"
           style={{ fill: "transparent", stroke: "rgba(220,30,10,0.55)", fontFamily: "'Orbitron', monospace", fontSize: "4rem", fontWeight: 900 }}
           initial={{ strokeDashoffset: 1000, strokeDasharray: 1000 }}
@@ -156,8 +155,10 @@ export const TextHoverEffect = ({
           transition={{ duration: 4, ease: "easeInOut" }}
         >{text}</motion.text>
 
-        {/* Hover reveal fill */}
-        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" stroke="url(#ftTextGrad)" strokeWidth="0.3" mask="url(#ftTextMask)"
+        {/* Hover reveal fill — shown on CSS :hover */}
+        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" strokeWidth="0.3"
+          mask="url(#ftTextMask)"
+          className="ft-svg-hover-fill"
           style={{ fill: "transparent", fontFamily: "'Orbitron', monospace", fontSize: "4rem", fontWeight: 900 }}
         >{text}</text>
       </svg>
@@ -181,46 +182,68 @@ function SectionHead({ num, title }: { num: string; title: string }) {
   );
 }
 
+/*
+  ✅ FIX: SocialBtn — removed useState hover entirely.
+  CSS class .ft-social-btn handles all hover styles.
+  whileHover/whileTap framer-motion props are CSS-compatible and don't cause re-renders.
+*/
 function SocialBtn({ icon, label, href }: { icon: React.ReactNode; label: string; href: string }) {
-  const [hov, setHov] = useState(false);
   return (
-    <motion.a href={href} aria-label={label} target="_blank" rel="noopener noreferrer"
-      onHoverStart={() => setHov(true)} onHoverEnd={() => setHov(false)}
-      onPointerEnter={() => setHov(true)} onPointerLeave={() => setHov(false)}
-      whileHover={{ scale: 1.14, y: -3 }} whileTap={{ scale: 0.91 }}
+    <motion.a
+      href={href}
+      aria-label={label}
+      target="_blank"
+      rel="noopener noreferrer"
+      whileHover={{ scale: 1.14, y: -3 }}
+      whileTap={{ scale: 0.91 }}
       transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      className="ft-social-btn"
       style={{
         display: "flex", alignItems: "center", justifyContent: "center",
         width: 36, height: 36, borderRadius: "50%",
-        border: `1px solid ${hov ? "rgba(220,30,10,0.90)" : "rgba(220,30,10,0.30)"}`,
-        background: hov ? "rgba(220,30,10,0.18)" : "rgba(220,30,10,0.06)",
-        color: hov ? "#ffffff" : "rgba(255,255,255,0.50)",
-        boxShadow: hov ? "0 0 18px rgba(220,30,10,0.50), 0 0 36px rgba(220,30,10,0.18)" : "none",
         cursor: "pointer", textDecoration: "none",
-        transition: "border 0.20s ease, background 0.20s ease, color 0.20s ease, box-shadow 0.20s ease",
         position: "relative", zIndex: 65,
       }}
     >{icon}</motion.a>
   );
 }
 
+/*
+  ✅ FIX: EventLink — removed useState hover.
+  CSS class .ft-event-link handles color transition.
+  whileHover on motion.a is handled by framer-motion internally (no setState).
+*/
 function EventLink({ label, href }: { label: string; href: string }) {
-  const [hov, setHov] = useState(false);
   return (
-    <motion.a href={href}
-      onHoverStart={() => setHov(true)} onHoverEnd={() => setHov(false)}
-      onPointerEnter={() => setHov(true)} onPointerLeave={() => setHov(false)}
-      whileHover={{ x: 5 }} transition={{ type: "spring", stiffness: 420, damping: 26 }}
-      style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 14, fontWeight: 600, letterSpacing: "0.06em", color: hov ? "#ff5030" : "rgba(255,255,255,0.50)", cursor: "pointer", textDecoration: "none", padding: "4px 0", display: "block", transition: "color 0.20s ease", position: "relative", zIndex: 65 }}
+    <motion.a
+      href={href}
+      whileHover={{ x: 5 }}
+      transition={{ type: "spring", stiffness: 420, damping: 26 }}
+      className="ft-event-link"
+      style={{
+        fontFamily: "'Rajdhani', sans-serif", fontSize: 14, fontWeight: 600,
+        letterSpacing: "0.06em", cursor: "pointer", textDecoration: "none",
+        padding: "4px 0", display: "block",
+        position: "relative", zIndex: 65,
+      }}
     >{label}</motion.a>
   );
 }
 
+/*
+  ✅ FIX: ContactLink — removed useState hover.
+  CSS class .ft-contact-link handles color transition.
+*/
 function ContactLink({ children, href }: { children: React.ReactNode; href: string }) {
-  const [hov, setHov] = useState(false);
   return (
-    <a href={href} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 14, fontWeight: 500, letterSpacing: "0.04em", color: hov ? "#ff5030" : "rgba(255,255,255,0.50)", transition: "color 0.20s ease", cursor: "pointer", textDecoration: "none", display: "block", position: "relative", zIndex: 65 }}
+    <a
+      href={href}
+      className="ft-contact-link"
+      style={{
+        fontFamily: "'Rajdhani', sans-serif", fontSize: 14, fontWeight: 500,
+        letterSpacing: "0.04em", cursor: "pointer", textDecoration: "none",
+        display: "block", position: "relative", zIndex: 65,
+      }}
     >{children}</a>
   );
 }
@@ -257,6 +280,26 @@ function MetallixFooter() {
     <div style={{ zIndex: 55, position: "relative" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+        /* ✅ All hover styles in pure CSS — zero JS overhead */
+        .ft-social-btn {
+          border: 1px solid rgba(220,30,10,0.30);
+          background: rgba(220,30,10,0.06);
+          color: rgba(255,255,255,0.50);
+          box-shadow: none;
+          transition: border 0.20s ease, background 0.20s ease, color 0.20s ease, box-shadow 0.20s ease;
+        }
+        .ft-social-btn:hover {
+          border-color: rgba(220,30,10,0.90);
+          background: rgba(220,30,10,0.18);
+          color: #ffffff;
+          box-shadow: 0 0 18px rgba(220,30,10,0.50), 0 0 36px rgba(220,30,10,0.18);
+        }
+        .ft-event-link { color: rgba(255,255,255,0.50); transition: color 0.20s ease; }
+        .ft-event-link:hover { color: #ff5030; }
+        .ft-contact-link { color: rgba(255,255,255,0.50); transition: color 0.20s ease; }
+        .ft-contact-link:hover { color: #ff5030; }
+
         @media (max-width: 768px) {
           .ft-main-grid { grid-template-columns: 1fr !important; gap: 40px 0 !important; }
           .ft-outer-pad { padding: 40px 22px 0 !important; }

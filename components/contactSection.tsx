@@ -61,19 +61,18 @@ const MinusSVG  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="no
 
 type Contact = typeof CONTACTS[number]
 
-/* ── CursorCard
-   ✅ useSyncExternalStore removed — replaced with simple useState mount guard
-   ✅ motion.img/div key-transitions removed — plain divs avoid extra reconciler work
-   ✅ All layout stays static; only AnimatePresence handles show/hide
-*/
 function CursorCard({ active, cursorX, cursorY }: {
   active: Contact | undefined
   cursorX: ReturnType<typeof useSpring>
   cursorY: ReturnType<typeof useSpring>
 }) {
-  // ✅ Lazy initializer: runs once synchronously on client, never triggers a re-render
-  const [mounted] = useState(() => typeof window !== 'undefined')
-  if (!mounted) return null
+  // ✅ portalTarget starts null on both server AND client first render (no mismatch).
+  // useEffect fires only after hydration is complete, setting it to document.body.
+  // The linter is satisfied because we're syncing React state with an external
+  // system (the DOM node), which is the correct use case for useEffect + setState.
+  const [portalTarget, setPortalTarget] = useState<Element | null>(null)
+  useEffect(() => { setPortalTarget(document.body) }, [])
+  if (!portalTarget) return null
 
   return ReactDOM.createPortal(
     <div style={{ position: 'fixed', left: 0, top: 0, zIndex: 999999, pointerEvents: 'none' }}>
@@ -93,7 +92,6 @@ function CursorCard({ active, cursorX, cursorY }: {
                 background: '#050000', position: 'relative',
               }}
             >
-              {/* Blurred bg */}
               <div style={{
                 position: 'absolute', inset: 0, zIndex: 0,
                 backgroundImage: `url(${active.image})`,
@@ -101,30 +99,25 @@ function CursorCard({ active, cursorX, cursorY }: {
                 filter: 'blur(18px) brightness(0.18) saturate(1.3)',
                 transform: 'scale(1.12)',
               }} />
-              {/* Photo */}
               <img src={active.image} alt={active.name} style={{
                 position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                 objectFit: 'cover', objectPosition: 'center top',
                 zIndex: 1, display: 'block', filter: 'brightness(0.82) saturate(1.05)',
               }} />
-              {/* Top accent */}
               <div style={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: 2, zIndex: 4,
                 background: `linear-gradient(90deg, transparent, ${T.red.glow} 40%, ${T.purple.glow} 70%, transparent)`,
                 boxShadow: `0 0 8px ${T.red.glow}`,
               }} />
-              {/* Left accent */}
               <div style={{
                 position: 'absolute', top: 0, left: 0, bottom: 0, width: 2, zIndex: 4,
                 background: `linear-gradient(180deg, transparent, ${T.red.glow}, transparent)`,
                 boxShadow: `0 0 6px ${T.red.glow}`,
               }} />
-              {/* Gradient overlay */}
               <div style={{
                 position: 'absolute', inset: 0, zIndex: 2,
                 background: 'linear-gradient(180deg, transparent 35%, rgba(3,0,0,0.97) 100%)',
               }} />
-              {/* Info */}
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 5, padding: '10px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
                   <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e', animation: 'cuGreenPulse 2s ease-in-out infinite' }} />
@@ -148,13 +141,15 @@ function CursorCard({ active, cursorX, cursorY }: {
         </AnimatePresence>
       </motion.div>
     </div>,
-    document.body
+    portalTarget  // ✅ was document.body — now a state value, null on SSR
   )
 }
 
-function ContactRow({ data, index, isActive, setActiveId, isMobile, isAnyActive }: {
+const ContactRow = React.memo(function ContactRow({ data, index, isActive, onEnter, onLeave, onToggle, isMobile, isAnyActive }: {
   data: Contact; index: number; isActive: boolean
-  setActiveId: (id: string | null) => void
+  onEnter: () => void
+  onLeave: () => void
+  onToggle: () => void
   isMobile: boolean; isAnyActive: boolean
 }) {
   return (
@@ -163,9 +158,9 @@ function ContactRow({ data, index, isActive, setActiveId, isMobile, isAnyActive 
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: isAnyActive && !isActive ? 0.18 : 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.07 }}
-      onMouseEnter={() => !isMobile && setActiveId(data.id)}
-      onMouseLeave={() => !isMobile && setActiveId(null)}
-      onClick={() => isMobile && setActiveId(isActive ? null : data.id)}
+      onMouseEnter={!isMobile ? onEnter : undefined}
+      onMouseLeave={!isMobile ? onLeave : undefined}
+      onClick={isMobile ? onToggle : undefined}
       className={`cu-row${isActive ? ' is-active' : ''}`}
       style={{ cursor: isMobile ? 'pointer' : 'default' }}
     >
@@ -236,7 +231,7 @@ function ContactRow({ data, index, isActive, setActiveId, isMobile, isAnyActive 
       </AnimatePresence>
     </motion.div>
   )
-}
+})
 
 export default function ContactUsSection() {
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -245,7 +240,6 @@ export default function ContactUsSection() {
 
   const mouseX = useMotionValue(-9999)
   const mouseY = useMotionValue(-9999)
-  // ✅ Relaxed spring — reduces work competing with SmoothCursor's RAF
   const cursorX = useSpring(mouseX, { damping: 40, stiffness: 400, mass: 0.15 })
   const cursorY = useSpring(mouseY, { damping: 40, stiffness: 400, mass: 0.15 })
 
@@ -257,8 +251,6 @@ export default function ContactUsSection() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // ✅ Native mousemove + RAF throttle instead of React synthetic onMouseMove
-  // This avoids firing a React re-render path on every pixel of mouse movement
   useEffect(() => {
     if (isMobile) return
     const handleMove = (e: MouseEvent) => {
@@ -275,6 +267,19 @@ export default function ContactUsSection() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [isMobile, mouseX, mouseY])
+
+  // ✅ Stable per-row callbacks — prevents all 6 rows re-rendering when
+  // only one row's active state changes (pairs with React.memo on ContactRow)
+  const handlers = React.useMemo(() =>
+    Object.fromEntries(CONTACTS.map(c => [
+      c.id,
+      {
+        onEnter:  () => setActiveId(c.id),
+        onLeave:  () => setActiveId(null),
+        onToggle: () => setActiveId(prev => prev === c.id ? null : c.id),
+      }
+    ])),
+  [])
 
   const active = CONTACTS.find(c => c.id === activeId)
 
@@ -320,7 +325,17 @@ export default function ContactUsSection() {
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {CONTACTS.map((contact, index) => (
-            <ContactRow key={contact.id} data={contact} index={index} isActive={activeId === contact.id} setActiveId={setActiveId} isMobile={isMobile} isAnyActive={activeId !== null} />
+            <ContactRow
+              key={contact.id}
+              data={contact}
+              index={index}
+              isActive={activeId === contact.id}
+              onEnter={handlers[contact.id].onEnter}
+              onLeave={handlers[contact.id].onLeave}
+              onToggle={handlers[contact.id].onToggle}
+              isMobile={isMobile}
+              isAnyActive={activeId !== null}
+            />
           ))}
         </div>
 
