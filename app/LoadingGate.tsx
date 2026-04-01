@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import LoadingScreen from "./LoadingScreen";
 
-const MIN_MS = 1800;
+const MIN_MS = 18000000;
 
 export default function LoadingGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
