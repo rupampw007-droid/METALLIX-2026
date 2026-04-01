@@ -6,6 +6,7 @@ import React from 'react'
 
 const D1 = new Date(2026, 3, 1)  // April 1, 2026
 const D2 = new Date(2026, 3, 3)  // April 3, 2026
+const D3 = new Date(2026, 3, 2)
 
 const t = (base: Date, h: number, m = 0) => {
   const d = new Date(base)
@@ -15,7 +16,7 @@ const t = (base: Date, h: number, m = 0) => {
 
 // ✅ Also at module level — stable references, no re-creation on render
 const events = [
-  { href: '/events/codemet',  image: '/codemet.png',  title: 'CODEMET',  date: t(D1, 21,  0) },
+  { href: '/events/codemet',  image: '/codemet.png',  title: 'CODEMET',  date: t(D3, 21,  0) },
   { href: '/events/hackmet',  image: '/hackemet.png', title: 'HACKMET',  date: t(D1, 10,  0) },
   { href: '/events/scribe',   image: '/scribe.png',   title: 'SCRIBE',   date: t(D2, 12, 30) },
   { href: '/events/specio',   image: '/specio.png',   title: 'SPECIO',   date: t(D2, 11) },
