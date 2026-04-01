@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Metallix '26",
-  description: "Created By Rupam Basak",
+  description: "The official website for Metallix '26, the annual Techno-Management fest of Jadavpur University. Explore events, workshops, and more!",
   icons: {
     icon: "/met2026Logo.png",
   },

@@ -12,8 +12,8 @@ const page = () => {
   contactName="Pranay Das"
   contactNumber="+91 9088131532"
   location="Online"
-  date="April 1, 2026"
-  time="Revealed Soon"
+  date="April 2, 2026"
+  time="9:00 PM - 10:30 PM"
 />
     </div>
   )

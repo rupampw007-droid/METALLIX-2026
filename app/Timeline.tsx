@@ -555,16 +555,18 @@ const items: TimelineItem[] = [
     { id:"5",  title:"Lunch",                  startTime:t(D1,13,30),     endTime:t(D1,14,30),     venue:"JU Guest House", tag:"Break"     },
     { id:"6",  title:"Technical Session 2",    startTime:t(D1,14,30),     endTime:t(D1,15,40),     venue:"Dr. Triguna Sen Auditorium",             tag:"Seminar"   },
     { id:"7",  title:"Valedictory Session",    startTime:t(D1,15,40),     endTime:t(D1,16),        venue:"Dr. Triguna Sen Auditorium", tag:"Closing"   },
+    { id:"8",  title:"Codemet",    startTime:t(D1,21),     endTime:t(D1,22,30),        venue:"Dr. Triguna Sen Auditorium", tag:"Closing"   },
+  
    
-    { id:"10", title:"Golazo",                 startTime:t(D2,10),        endTime:t(D2,10,30),     venue:"K.P Basu Memorial Hall",                 tag:"Event"     },
-    { id:"11", title:"Wall Street",            startTime:t(D2,10,30),     endTime:t(D2,11,15),     venue:"K.P Basu Memorial Hall",     tag:"Event"     },
-    { id:"12", title:"Specio",                 startTime:t(D2,11,15),     endTime:t(D2,11,45),     venue:"K.P Basu Memorial Hall",     tag:"Event"     },
-    { id:"13", title:"Scribe",                 startTime:t(D2,11,45),     endTime:t(D2,12,30),     venue:"K.P Basu Memorial Hall",     tag:"Event"     },
-    { id:"14", title:"Scroll",                 startTime:t(D2,12,30),     endTime:t(D2,13,0),      venue:"K.P Basu Memorial Hall",     tag:"Event"     },
-    { id:"15", title:"Lunch",                  startTime:t(D2,13,0),      endTime:t(D2,14,15),     venue:"JU Guest House",             tag:"Break"     },
-    { id:"16", title:"Gnosis",                 startTime:t(D2,14,15),     endTime:t(D2,15,15),     venue:"K.P Basu Memorial Hall",     tag:"Event"     },
-    { id:"17", title:"Talaash",                startTime:t(D2,15,30),     endTime:t(D2,18,0),      venue:"K.P Basu Memorial Hall",     tag:"Event"     },
-    { id:"18", title:"Closing Ceremony",       startTime:t(D2,20),        endTime:t(D2,20,30),     venue:"K.P Basu Memorial Hall",     tag:"Closing"   },
+    { id:"8", title:"Specio",                 startTime:t(D2,11),        endTime:t(D2,13),     venue:"Met & Mat Engg Dept",                 tag:"Event"     },
+    { id:"9", title:"Scroll",                 startTime:t(D2,11),        endTime:t(D2,13),     venue:"Met & Mat Engg Dept",                 tag:"Event"     },
+    { id:"10", title:"Wall Street",            startTime:t(D2,11,30),     endTime:t(D2,16),     venue:"Met & Mat Engg Seminar Hall",     tag:"Event"     },
+    { id:"11", title:"Scribe",                 startTime:t(D2,12,30),     endTime:t(D2,13,30),     venue:"Met & Mat Engg Seminar Hall",     tag:"Event"     },
+    { id:"12", title:"Lunch",                  startTime:t(D2,13,0),      endTime:t(D2,14),     venue:"JU Guest House",             tag:"Break"     },
+     { id:"13", title:"Golazo",       startTime:t(D2,15,30),        endTime:t(D2,18),     venue:"Online",     tag:"Event"   },
+    { id:"14", title:"Gnosis",                 startTime:t(D2,16),     endTime:t(D2,18),     venue:"K.P Basu Memorial Hall",     tag:"Event"     },
+    { id:"1509j", title:"Talaash",                startTime:t(D2,16),     endTime:t(D2,18),      venue:"K.P Basu Memorial Hall",     tag:"Event"     },
+   
 ];
   return <GlowingTimeline items={items} />;
 }

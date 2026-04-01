@@ -11,9 +11,9 @@ const page = () => {
   description="Specio rocks! It's Metallix'26's top metallography contest. Show off your skills in preparing samples, examining them with microscopes, and analyzing interesting images. Sign up now and join the excitement of exploring the fascinating world of metallography. Get ready to shine and win big!"
   contactName="Soham Kundu"
   contactNumber="+91 9749249756"
-  location="Revealed Soon"
+  location="Met & Mat Engg Dept"
   date="April 3, 2026"
-  time="11:15 AM Onwards"
+  time="11:00 AM - 1:00 PM"
 />
     </div>
   )
