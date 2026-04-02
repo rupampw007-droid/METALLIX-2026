@@ -56,10 +56,13 @@ function FireSprinkles() {
     setSize();
     window.addEventListener("resize", setSize);
 
-    /* Scroll-based opacity */
+    let currentOpacity = 0.55;
+    let scrollDepth = 0;
+
     const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const fade = Math.max(0.15, 0.55 - scrollY / 2000);
+      scrollDepth = window.scrollY;
+      const fade = Math.max(0.0, 0.55 - scrollDepth / 1800);
+      currentOpacity = fade;
       canvas.style.opacity = String(fade);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -74,10 +77,14 @@ function FireSprinkles() {
     };
 
     const pool: P[] = [];
-    const MAX = window.navigator.hardwareConcurrency > 4 ? 180 : 80;
+    // Reduced base MAX significantly
+    const MAX = window.navigator.hardwareConcurrency > 4 ? 90 : 45;
 
     const spawnEmber = () => {
+      // Don't spawn when nearly invisible (user scrolled far down)
+      if (currentOpacity < 0.05) return;
       if (pool.length >= MAX) return;
+
       const band = Math.random();
       let x: number;
       if (band < 0.25)       x = Math.random() * canvas.width * 0.18;
@@ -111,9 +118,18 @@ function FireSprinkles() {
 
     const tick = () => {
       raf = requestAnimationFrame(tick);
+
+      // Pause rendering entirely when invisible or tab hidden
+      if (currentOpacity < 0.02 || document.hidden) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
       frame++;
-      const spawnCount = 2 + (frame % 3 === 0 ? 1 : 0);
-      for (let s = 0; s < spawnCount; s++) spawnEmber();
+      // Reduce spawn rate based on scroll depth
+      const spawnRate = Math.max(0, 2 - Math.floor(scrollDepth / 1500));
+      for (let s = 0; s < spawnRate; s++) spawnEmber();
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (let i = pool.length - 1; i >= 0; i--) {
@@ -124,27 +140,28 @@ function FireSprinkles() {
         p.x  += p.vx + Math.sin(p.wobble + p.turbSeed) * 0.32;
         p.y  += p.vy;
         p.vy *= 0.998;
+
         const progress = p.life / p.maxLife;
         const alpha    = Math.sin(progress * Math.PI) * 0.82;
         const r = p.size * (1 - progress * 0.45);
-        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3.5);
-        grad.addColorStop(0,   `hsla(${p.hue},${p.sat}%,${p.lit + 18}%,${alpha})`);
-        grad.addColorStop(0.35,`hsla(${p.hue},${p.sat}%,${p.lit}%,${alpha * 0.65})`);
-        grad.addColorStop(1,   `hsla(${p.hue},${p.sat}%,30%,0)`);
+
+        // ✅ Flat fill instead of createRadialGradient — massive perf win
         ctx.beginPath();
         ctx.arc(p.x, p.y, r * 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
+        ctx.fillStyle = `hsla(${p.hue},${p.sat}%,${p.lit}%,${alpha * 0.65})`;
         ctx.fill();
+
         if (r > 1.2) {
           ctx.beginPath();
           ctx.arc(p.x, p.y, r * 0.55, 0, Math.PI * 2);
-          ctx.fillStyle = `hsla(${p.hue + 20},100%,85%,${alpha * 0.55})`;
+          ctx.fillStyle = `hsla(${p.hue + 20},100%,85%,${alpha * 0.45})`;
           ctx.fill();
         }
       }
     };
 
     tick();
+
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", setSize);
@@ -168,7 +185,6 @@ function FireSprinkles() {
     />
   );
 }
-
 /* ══ SCROLL REVEAL HOOK ══ */
 function useScrollReveal() {
   useEffect(() => {
