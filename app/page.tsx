@@ -11,7 +11,8 @@ import { HeroVideoDemo } from "./Hero";
 import Navbar from "@/components/Navbar";
 import MetallixFooter from "@/components/Footer";
 import ContactUsSection from "@/components/contactSection";
-import LoadingGate from "./LoadingGate";;
+import LoadingGate from "./LoadingGate";
+import EventSponsors from "@/components/EventSponsors";
 
 /* ══════════════════════════════════════════════════════
    FIRE SPRINKLES CANVAS
@@ -309,15 +310,19 @@ export default function Home() {
                     tagline: "Building the future",
                     url: "https://www.tatasteel.com/",
                   }}
-                  minorSponsors={[
-                    { name: "Coming Soon1", image: "/sponsors/devtools.png" },
-                    { name: "Coming Soon2", image: "/sponsors/cloudx.png" },
-                    { name: "Coming Soon3", image: "/sponsors/bytehub.png" },
-                    { name: "Coming Soon4", image: "/sponsors/nexaui.png" },
-                  ]}
+                 
                 />
               </div>
             </section>
+            <section id="event-sponsors">
+  <EventSponsors
+    heading="Event Sponsors"
+    sponsors={[
+      { name: "Now Purchase",   image: "/nowpurchase.png",   url: "https://nowpurchase.com/" },
+    
+    ]}
+  />
+</section>
 
             <section id="faq"><FAQs /></section>
             <section id="contact"><ContactUsSection /></section>
